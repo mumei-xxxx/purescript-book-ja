@@ -25,26 +25,25 @@ import Data.Maybe (Maybe)
 ここでは、いくつかのモジュールをインポートします。
 
 - `Control.Plus`モジュールには後ほど使う `empty`値が定義されています。
-- `purescript-lists`パッケージで提供されている `Data.List`モジュールをインポートしています。 `purescript-lists`パッケージはbowerを使用してインストールすることができ、連結リストを使うために必要ないくつかの関数が含まれています。
+- `Data.List`モジュールは、`Spago`でインストール可能な`lists`パッケージで提供されています。このモジュールには、連結リストを扱うために必要ないくつかの関数が含まれています。
 - `Data.Maybe`モジュールは、値が存在したりしなかったりするような、オプショナルな値を扱うためのデータ型と関数を定義しています。
 - (訳者注・ダブルドット(..)を使用すると、指定された型コンストラクタのすべてのデータコンストラクタをインポートできます。)
 
 このモジュールのインポート内容が括弧内で明示的に列挙されていることに注目してください。明示的な列挙はインポート内容の衝突を避けるのに役に立つので、一般に良い習慣です。
 
-ソースコードリポジトリを複製したと仮定すると、この章のプロジェクトは次のコマンドを使用してPulpを使用して構築できます。
+ソースコードリポジトリを複製したと仮定すると、この章のプロジェクトは次のコマンドを使用して`Spago`を使用して構築できます。
 
 ```text
 $ cd chapter3
-$ bower update
-$ pulp build
+$ spago build
 ```
 
 ## 単純な型
 
-JavaScriptのプリミティブ型に対応する組み込みデータ型として、PureScriptでは数値型と文字列型、真偽型の３つが定義されており、それぞれ `Number`、 `String`、 `Boolean`と呼ばれています。これらの型はすべてのモジュールに暗黙にインポートされる `Prim`モジュールで定義されています。`pulp repl`の `:type`コマンドを使用すると、簡単な値の型を確認できます。
+JavaScriptのプリミティブ型に対応する組み込みデータ型として、PureScriptでは数値型と文字列型、真偽型の３つが定義されており、それぞれ `Number`、 `String`、 `Boolean`と呼ばれています。これらの型はすべてのモジュールに暗黙にインポートされる `Prim`モジュールで定義されています。`PSCi`では `:type`コマンドを使用すると、簡単な値の型を確認できます。
 
 ```text
-$ pulp repl
+$ spago repl
 
 > :type 1.0
 Number
@@ -82,7 +81,7 @@ Array Int
 Array Boolean
 
 > :type [1, false]
-Could not match type Int with Boolean.
+Could not match type Int with type Boolean.
 ```
 
 最後の例で起きているエラーは型検証器によって報告されたもので、配列の2つの要素の型を**単一化**(Unification)しようとして失敗したこと示しています。
@@ -240,16 +239,26 @@ example x y z = foo + bar
 PureScriptで新たな問題に取り組むときは、まずはこれから扱おうとする値の型の定義を書くことから始めるのがよいでしょう。最初に、住所録に含まれるレコードの型を定義してみます。
 
 ```haskell
-type Entry = { firstName :: String, lastName :: String, address :: Address }
+type Entry =
+  { firstName :: String
+  , lastName  :: String
+  , address   :: Address
+  }
 ```
 
-これは `Entry`という**型同義語**(type synonym、型シノニム)を定義しています。 型 `Entry`は等号の右辺と同じ型ということです。レコードの型はいずれも文字列である `firstName`、 `lastName`、 `phone`という３つのフィールドからなります。前者の２つのフィールドは型 `String`を持ち、 `address`は以下のように定義された型 `Address`を持っています。
+これは `Entry`という**型同義語**(type synonym、型シノニム)を定義しています。 型 `Entry`は等号の右辺と同じ型ということです。レコードの型はいずれも文字列である `firstName`、 `lastName`、 `address`という３つのフィールドからなります。前者の２つのフィールドは型 `String`を持ち、 `address`は以下のように定義された型 `Address`を持っています。
 
 ```haskell
-type Address = { street :: String, city :: String, state :: String }
+type Address =
+  { street :: String
+  , city   :: String
+  , state  :: String
+  }
 ```
 
-それでは、２つめの型同義語も定義してみましょう。住所録のデータ構造としては、単に項目の連結リストとして格納することにします。
+レコードは他のレコードを含むことができることに注意してください。
+
+それでは、３つめの型同義語も定義してみましょう。住所録のデータ構造としては、単に項目の連結リストとして格納することにします。
 
 ```haskell
 type AddressBook = List Entry
@@ -295,7 +304,7 @@ PureScriptの**種システム**は他にも面白い種に対応しています
 
 ## 住所録の項目の表示
 
-それでは最初に、文字列で住所録の項目を表現するような関数を書いてみましょう。まずは関数に型を与えることから始めます。型の定義は省略することも可能ですが、ドキュメントとしても役立つので型を書いておくようにすると良いでしょう。型宣言は関数の名前とその型を `::`記号で区切るようにして書きます。
+それでは最初に、文字列で住所録の項目を表現するような関数を書いてみましょう。まずは関数に型を与えることから始めます。型の定義は省略することも可能ですが、ドキュメントとしても役立つので型を書いておくようにすると良いでしょう。実際、PureScriptのコンパイラは、トップレベルの宣言に型アノテーションが含まれていない場合、警告を出します。型宣言は関数の名前とその型を `::`記号で区切るようにして書きます。
 
 ```haskell
 showEntry :: Entry -> String
@@ -327,13 +336,13 @@ showAddress addr = addr.street <> ", " <>
 まず、これまで書かれたコードをビルドします。
 
 ```text
-$ pulp build
+$ spago build
 ```
 
 次に、 `PSCi`を起動し、この新しいモジュールをインポートするために `import`命令を使います。
 
 ```text
-$ pulp repl
+$ spago repl
 
 > import Data.AddressBook
 ```
@@ -383,7 +392,7 @@ insertEntry :: Entry -> AddressBook -> AddressBook
 `Data.List`の `Cons`関数を使用すると `insertEntry`を実装できます。 `PSCi`を起動し `:type`コマンドを使って、この関数の型を見てみましょう。
 
 ```text
-$ pulp repl
+$ spago repl
 
 > import Data.List
 > :type Cons
@@ -403,7 +412,7 @@ Entry -> List Entry -> List Entry
 Entry -> AddressBook -> AddressBook
 ```
 
-今回の場合、すでに適切な入力があります。 `Entry`と `AddressBook`に `Cons`を適用すると、新しい `AddressBook`を得ることができます。これこそまさに私たちが求めていた関数です！
+この場合、すでに `Entry` と `AddressBook` という適切な入力があるので、`Cons` を適用して新しい まさに私たちが求めていた `AddressBook` を取得することができます。
 
 `insertEntry`の実装は次のようになります。
 
@@ -448,6 +457,8 @@ AddressBook
 ```
 
 これは関数適用が左結合であるためで、なぜ単に空白で区切るだけで関数に引数を与えることができるのかも説明にもなっています。
+
+関数型の `->` 演算子は、関数の _型コンストラクタ_ である。これは2つの型引数、関数の引数型と戻り値型を取ります。それぞれ左オペランドと右オペランドです。
 
 本書では今後、「２引数の関数」というように表現することがあることに注意してください。これはあくまで、最初の引数を取り別の関数を返す、カリー化された関数を意味していると考えてください。
 
