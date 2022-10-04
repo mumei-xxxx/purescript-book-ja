@@ -528,7 +528,7 @@ _.address.city
 この大まかな仕様に従って、この関数の型を計算することができます。まず `PSCi`を起動し、 `filter`関数と `head`関数の型を見てみましょう。
 
 ```text
-$ pulp repl
+$ spago repl
 
 > import Data.List
 > :type filter
@@ -569,7 +569,7 @@ findEntry :: String -> String -> AddressBook -> Maybe Entry
 そして、 `findEntry`の定義は次のようになります。
 
 ```haskell
-findEntry firstName lastName book = head $ filter filterEntry book
+findEntry firstName lastName book = head (filter filterEntry book)
   where
     filterEntry :: Entry -> Boolean
     filterEntry entry = entry.firstName == firstName && entry.lastName == lastName
