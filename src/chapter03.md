@@ -487,6 +487,38 @@ insertEntry = Cons
 
 `insertEntry`の場合には、イータ変換によって「 `insertEntry`は単にリストに対する `cons`だ」と関数の定義はとても明確になりました。しかしながら、常にポイントフリー形式のほうがいいのかどうかには議論の余地があります。
 
+## プロパティ アクセサ
+
+よくあるパターンとしては、レコードの個々のフィールド(または「プロパティ」)にアクセスするために関数を使用することです。`Entry` から `Address` を抽出するインライン関数は、次のように記述することができます。
+
+```haskell
+\entry -> entry.address
+```
+
+PureScriptでは、[_プロパティアクセサ_](https://github.com/purescript/documentation/blob/master/language/Syntax.md#property-accessors)という略記も可能で、アンダースコアが無名関数の引数として機能するので、上のインライン関数は次と等価です。
+
+```haskell
+_.address
+```
+
+これは、任意の数のレベルやプロパティで動作するので、`Entry` に関連する city を抽出する関数は次のように書くことができます。
+
+```haskell
+_.address.city
+```
+
+例えば、こんな感じです。
+
+```text
+> address = { street: "123 Fake St.", city: "Faketown", state: "CA" }
+> entry = { firstName: "John", lastName: "Smith", address: address }
+> _.lastName entry
+"Smith"
+
+> _.address.city entry
+"Faketown"
+```
+
 ## あなたの住所録は？
 
 最小限の住所録アプリケーションの実装で必要になる最後の関数は、名前で人を検索し適切な `Entry`を返すものです。これは小さな関数を組み合わせることでプログラムを構築するという、関数型プログラミングで鍵となる考え方のよい応用例になるでしょう。
