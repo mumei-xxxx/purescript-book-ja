@@ -587,11 +587,77 @@ findEntry firstName lastName book = head (filter filterEntry book)
 
 ## 中置の関数適用
 
-上でみた `findEntry`のコードでは、少し異なる形式の関数適用が使用されています。 `head`関数は中置の `$`演算子を使って式 `filter filterEntry book`に適用されています。
+これまで説明してきたほとんどの関数では、関数名を引数の前に置く _前置_ 関数適用を使用していました。例えば、 `insertEntry` 関数を使って、空の `AddressBook` に `Entry` (`john`) を追加する場合、以下のように記述します。
 
-これは `head (filter filterEntry book)`という通常の関数適用と同じ意味です。
+```haskell
+> book1 = insertEntry john emptyBook
+```
+しかし、この章では _中置_ [二項演算子](https://github.com/purescript/documentation/blob/master/language/Syntax.md#binary-operators) の例も紹介しています。例えば、 `filterEntry` の定義にある `==` 演算子は、2つの引数の間に演算子が置かれるようになっています。これらの中置演算子は、実際にはPureScriptのソースで、基本的な _前置_ の実装の中置エイリアスとして定義されています。例えば、`==` は `eq` という前置関数の 中置 エイリアスとして、次のような行で定義されています。
 
-`($)`はPreludeで定義されている `apply`関数の別名で、次のように定義されています。
+```haskell
+infix 4 eq as ==
+```
+
+したがって、 `filterEntry` の `entry.firstName == firstName` は、 `eq entry.firstName firstName` に置き換えることができます。このセクションの後半で、中置演算子を定義する例についてもう少し取り上げます。
+
+演算子として前置関数を中置の位置に置くと、より読みやすいコードになる場合があります。その一例が `mod` 関数です。
+
+```text
+> mod 8 3
+2
+```
+
+上記の使い方はうまくいくのですが、読みにくいです。もっと身近な表現としては「eight mod three」があり、これは前置関数をバックティック( \`)で囲むことで実現できます。
+
+```text
+> 8 `mod` 3
+2
+```
+
+同様に、 `insertEntry` をバックティックで囲むと、以下の `book1` と `book2` が等価になるような 中置演算子になります。
+
+```haskell
+book1 = insertEntry john emptyBook
+book2 = john `insertEntry` emptyBook
+```
+
+以下のように、 `insertEntry` を前置関数 (`book3`) または中置演算子 (`book4`) として複数回使用することで、複数のエントリを持つ `AddressBook` を作成することができます。
+
+```haskell
+book3 = insertEntry john (insertEntry peggy (insertEntry ned emptyBook))
+book4 = john `insertEntry` (peggy `insertEntry` (ned `insertEntry` emptyBook))
+```
+
+また、`insertEntry.`に対して、中置演算子のエイリアス(またはシノニム)を定義することもできます。 私たちはこの演算子に`++`を割り当ててみましょう。そして、`5` の[優先順位](https://github.com/purescript/documentation/blob/master/language/Syntax.md#precedence)を与え、
+`infixr` を使い、右[結合](https://github.com/purescript/documentation/blob/master/language/Syntax.md#associativity)に設定しましょう。
+
+```haskell
+infixr 5 insertEntry as ++
+```
+
+この新しい演算子によって、上の `book4` の例を次のように書き換えることができます。
+
+```haskell
+book5 = john ++ (peggy ++ (ned ++ emptyBook))
+```
+
+そして、新しい演算子 `++` の右結合によって、意味を変えずに括弧を取り除くことができます。
+
+```haskell
+book6 = john ++ peggy ++ ned ++ emptyBook
+```
+
+もうひとつの一般的な方法は、標準的なプリフィックス関数と一緒に `apply` の中置演算子 `$` を使用することです。
+
+例えば、先ほどの`book3`の例は、次のように書き換えることができます。
+
+```haskell
+book7 = insertEntry john $ insertEntry peggy $ insertEntry ned emptyBook
+```
+
+通常、`$` を括弧に置き換えることは、タイプしやすく、（間違いなく）読みやすくなります。 この記号の意味を覚えるための記憶法は、ドル記号が2つの括弧の交差で、括弧が不要になったと示唆されていることと考えることです。
+
+なお、`$`は言語にハードコードされた特別な構文ではありません。これは、単に `apply` という正規の関数の 中置演算子であり、 `Data.Function` で次のように定義されています。
 
 ```haskell
 apply :: forall a b. (a -> b) -> a -> b
@@ -600,20 +666,45 @@ apply f x = f x
 infixr 0 apply as $
 ```
 
-ここで、 `apply`は関数と値をとり、その値にその関数を適用します。 `infixr`キーワードは `($)`を `apply`の別名として定義します。
+`apply` 関数は、第一引数に別の関数 (`(a -> b)` 型) を、第二引数に値 (`a` 型) を取り、その値でその関数を呼び出します。 この機能には何の意味もないように思われるかもしれませんが、全くその通りです！ あなたのプログラムは、それがなくても論理的には同じです。 (以下を参照。[referential transparency](https://en.wikipedia.org/wiki/Referential_transparency)).この関数の構文的な有用性は、その 中置演算子に割り当てられた特別な性質に由来する。`$`は右結合 (`infixr`) で低優先 (`0`) の演算子であり、深いネストのアプリケーションで括弧のセットを削除することができます。
 
-しかし、なぜ通常の関数適用の代わりに `$`を使ったのでしょうか？　その理由は `$`は右結合で優先順位の低い演算子だということにあります。これは、深い入れ子になった関数適用のための括弧を、 `$`を使うと取り除くことができることを意味します。
-
-たとえば、ある従業員の上司の住所がある道路を見つける、次の入れ子になった関数適用を考えてみましょう。
+もう一つ、`$`演算子で括弧を消すことができるのは、先ほどの `findEntry` 関数です。
 
 ```haskell
-street (address (boss employee))
+findEntry firstName lastName book = head $ filter filterEntry book
 ```
 
-これは `$`を使用して表現すればずっと簡単になります。
+この行を「関数合成」で書き換える、さらにエレガントな方法を次節で紹介します。
+
+簡潔な 中置演算子のエイリアスを前置関数として使用したい場合は、括弧で囲むことができます。
+
+```text
+> 8 + 3
+11
+
+> (+) 8 3
+11
+```
+
+また、演算子は、式を括弧で囲み、[演算子セクション](https://github.com/purescript/documentation/blob/master/language/Syntax.md#operator-sections)で `_` をオペランドとして用いることで、部分的に適用することができます。これは、単純な無名関数を作るより便利な方法と考えることができます（ただし、以下の例では、その無名関数を名前に束縛しているので、もはや無名とは言えません）。
+
+```text
+> add3 = (3 + _)
+> add3 2
+5
+```
+
+まとめると、引数に `5` を加える関数の定義は以下のように等価です。
 
 ```haskell
-street $ address $ boss employee
+add5 x = 5 + x
+add5 x = add 5 x
+add5 x = (+) 5 x
+add5 x = 5 `add` x
+add5   = add 5
+add5   = \x -> 5 + x
+add5   = (5 + _)
+add5 x = 5 `(+)` x  -- あなたが中置演算子が好きなのは知っているので、あなたの中置演算子に中置演算子を入れました!
 ```
 
 ## 関数合成
